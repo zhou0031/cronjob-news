@@ -40,6 +40,7 @@ async function saveToPostgres(newsData, dbParams) {
         const insertQuery = `INSERT INTO "News" (id,title, content, published_at,photos,"publisherId") VALUES ($1,$2,$3,$4,$5,$6)`;
         const values = [uuid(),title, content, publication_date,photos,publisher];
         await client.query(insertQuery, values);
+        
     }
     
     await client.end();
