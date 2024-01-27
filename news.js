@@ -2,8 +2,9 @@ import axios from 'axios'
 import pg from 'pg'
 import { v4 as uuid } from 'uuid';
 
+
 const {Client}=pg
-const newsApiUrl = 'https://cfnews.310soft.com/getNews';
+const newsApiUrls = ['https://cfnews.310soft.com/nytimes','https://cfnews.310soft.com/bbc','https://cfnews.310soft.com/nikkei'];
 const postgresParams = {
     user: 'ryan',
     host: '192.168.2.8',
@@ -17,15 +18,18 @@ async function getToken(){
     return response.data
 }
 
-
-async function fetchNews(apiUrl) {
+async function fetchNews(apiUrls) {
     const token=await getToken()
-    const response = await axios(apiUrl,{headers:{Authorization:`Bearer ${token}`}});
-    if (response.status==200) {
-        return response.data;
-    } else {
-        throw new Error(`Failed to fetch news. Status code: ${response.status}`);
+    const news=[]
+    for (const url of apiUrls) {
+        try{ 
+            const response = await axios(url,{headers:{Authorization:`Bearer ${token}`}});
+            if (response.status==200) news.push(...response.data)
+        }catch(e){
+            continue
+        }
     }
+    return news   
 }
 
 async function saveToPostgres(newsData, dbParams) {
@@ -52,7 +56,7 @@ async function saveToPostgres(newsData, dbParams) {
 
 (async () => {
     try {      
-        const newsData = await fetchNews(newsApiUrl);
+        const newsData = await fetchNews(newsApiUrls);
         await saveToPostgres(newsData, postgresParams);
         console.log('News successfully fetched and saved to PostgreSQL.');
     } catch (error) {
