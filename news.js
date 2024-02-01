@@ -1,6 +1,10 @@
 import axios from "axios";
 import pg from "pg";
 import { v4 as uuid } from "uuid";
+import { promisify } from "util";
+
+const INTERVAL = 60 * 1000; //1 minute
+const sleep = promisify(setTimeout);
 
 const { Client } = pg;
 const newsApiUrls = [
@@ -9,6 +13,7 @@ const newsApiUrls = [
   "https://cfnews.310soft.com/nikkei",
   "https://cfnews.310soft.com/joins",
 ];
+
 const postgresParams = {
   user: "ryan",
   host: "192.168.2.8",
@@ -34,6 +39,8 @@ async function fetchNews(apiUrls) {
     } catch (e) {
       continue;
     }
+    //wait 1 minute before next url run
+    await sleep(INTERVAL);
   }
   return news;
 }
