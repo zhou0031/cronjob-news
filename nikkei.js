@@ -1,18 +1,16 @@
 import axios from "axios";
 import pg from "pg";
 import { v4 as uuid } from "uuid";
-import { promisify } from "util";
 
-const INTERVAL = 60 * 1000; //1 minute
-const sleep = promisify(setTimeout);
+/*************************************
+  https://cfnews.310soft.com/nytimes,
+  https://cfnews.310soft.com/bbc",
+  https://cfnews.310soft.com/nikkei,
+  https://cfnews.310soft.com/joins
+  ***********************************/
 
 const { Client } = pg;
-const newsApiUrls = [
-  "https://cfnews.310soft.com/nytimes",
-  "https://cfnews.310soft.com/bbc",
-  "https://cfnews.310soft.com/nikkei",
-  "https://cfnews.310soft.com/joins",
-];
+const newsApiUrls = "https://cfnews.310soft.com/nikkei";
 
 const postgresParams = {
   user: "ryan",
@@ -27,21 +25,18 @@ async function getToken() {
   return response.data;
 }
 
-async function fetchNews(apiUrls) {
+async function fetchNews(apiUrl) {
   const token = await getToken();
   const news = [];
-  for (const url of apiUrls) {
-    try {
-      const response = await axios(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.status == 200) news.push(...response.data);
-    } catch (e) {
-      continue;
-    }
-    //wait 1 minute before next url run
-    await sleep(INTERVAL);
-  }
+
+  try {
+    const response = await axios(apiUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.status == 200) news.push(...response.data);
+  } catch (e) {}
+
   return news;
 }
 
@@ -70,6 +65,7 @@ async function saveToPostgres(newsData, dbParams) {
       await client.query(insertQuery, values);
     } catch (e) {
       console.log("Error", article);
+      throw e;
     }
   }
 
@@ -82,6 +78,6 @@ async function saveToPostgres(newsData, dbParams) {
     await saveToPostgres(newsData, postgresParams);
     console.log("News successfully fetched and saved to PostgreSQL.");
   } catch (error) {
-    console.error(`An error occurred: ${error.message}`);
+    console.error(`An error occurred: ${error}`);
   }
 })();
