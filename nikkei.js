@@ -42,34 +42,35 @@ async function fetchNews(apiUrl) {
 
 async function saveToPostgres(newsData, dbParams) {
   const client = new Client(dbParams);
+  try {
+    await client.connect();
 
-  await client.connect();
-
-  for (const article of newsData || []) {
-    try {
-      const { title, content, publication_date, photos, publisher } = article;
-      const result = await client.query(
-        'SELECT EXISTS (SELECT 1 FROM "News" WHERE title = $1) as "exists"',
-        [title]
-      );
-      if (result.rows[0].exists === true) continue;
-      const insertQuery = `INSERT INTO "News" (id,title, content, published_at,photos,"publisherId") VALUES ($1,$2,$3,$4,$5,$6)`;
-      const values = [
-        uuid(),
-        title,
-        content,
-        publication_date,
-        photos,
-        publisher,
-      ];
-      await client.query(insertQuery, values);
-    } catch (e) {
-      console.log("Error", article);
-      throw e;
+    for (const article of newsData || []) {
+      try {
+        const { title, content, publication_date, photos, publisher } = article;
+        const result = await client.query(
+          'SELECT EXISTS (SELECT 1 FROM "News" WHERE title = $1) as "exists"',
+          [title]
+        );
+        if (result.rows[0].exists === true) continue;
+        const insertQuery = `INSERT INTO "News" (id,title, content, published_at,photos,"publisherId") VALUES ($1,$2,$3,$4,$5,$6)`;
+        const values = [
+          uuid(),
+          title,
+          content,
+          publication_date,
+          photos,
+          publisher,
+        ];
+        await client.query(insertQuery, values);
+      } catch (e) {
+        console.log("Error", article);
+        throw e;
+      }
     }
+  } finally {
+    await client.end();
   }
-
-  await client.end();
 }
 
 (async () => {
